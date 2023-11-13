@@ -1,0 +1,5 @@
+Architect--CISC191--true--2023-11-12
+Essay--ENGL101--false--2023-11-22
+Homework--ANTH103--false--2023-11-29
+Exam--ANTH103--true--2023-12-01
+Homework--ENGL101--true--2023-11-13
