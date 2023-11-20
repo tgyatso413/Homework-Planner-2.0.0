@@ -16,6 +16,15 @@ public class TimerPopup extends Popup {
     private AppButton timerSubmit = new AppButton();
     private Time time = new Time();
     private int secondsTotal;
+    private TimerState timerState = TimerState.NOTHING;
+
+    public TimerState getState() {
+        return this.timerState;
+    }
+
+    public void setState(TimerState newState) {
+        this.timerState = newState;
+    }
 
     /** Converts user input in minutes to seconds. If there is no input, return 1 second.
      * @param inputTimerMinutes textfield that holds how many minutes user wants timer to run
