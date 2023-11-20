@@ -14,6 +14,7 @@ import javafx.stage.Stage;
 import javafx.util.Duration;
 
 import java.io.*;
+import java.net.ConnectException;
 import java.net.Socket;
 import java.util.Scanner;
 
@@ -68,7 +69,14 @@ public class Client extends Application {
     public void start(Stage stage) throws Exception {
 
         // opens connection to server to receive a quote to display
-        Socket clientSocket = new Socket("localhost", 8000);
+
+        Socket clientSocket;
+        try {
+            clientSocket = new Socket("localhost", 8000);
+        } catch(ConnectException e) {
+            System.err.println("Backend is not started");
+            return;
+        }
         ObjectInputStream in = new ObjectInputStream(clientSocket.getInputStream());
         String quote = (String) in.readObject();
         clientSocket.close();
@@ -301,19 +309,20 @@ public class Client extends Application {
         VBox timerAdding = timerPopup.getTimerAdding(inputTimerMinutes, timerSubmit);
         timerPopup.getContent().add(timerAdding);
 
-        //sets timer in minutes and timer label in mm:ss
-        timerButton.setOnAction(e -> {
-            if (!timerPopup.isShowing()) {
-                timerPopup.show(stage);
-                timerButton.setText("Cancel");
-                snackButton.setVisible(false);
-                timerSubmit.setOnAction(e2 -> {
+
+        timerSubmit.setOnAction(e -> {
+            switch(timerPopup.getState()) {
+                case CONFIGURING:
                     timerPopup.hide();
                     secondsTotal = timerPopup.getSecondsTotal(inputTimerMinutes);
                     inputTimerMinutes.clear();
-                    timerButton.setText("Timer");
+                    timerButton.setText("Cancel");
                     studyMessage.setText("Time to Study!");
+                    minutes = secondsTotal / 60;
+                    seconds = secondsTotal % 60;
+                    timerLabel.setText(String.format("%02d", minutes) + ":" + String.format("%02d", seconds));
                     //updates time left every second
+                    //TODO move this in TimerPopup class as a method?
                     KeyFrame keyFrame = new KeyFrame(Duration.seconds(1), event -> {
                         secondsTotal--;
                         minutes = secondsTotal / 60;
@@ -323,18 +332,44 @@ public class Client extends Application {
                             timeline.stop();
                             studyMessage.setText("Take a Break!");
                             snackButton.setVisible(true);
+                            timerPopup.setState(TimerState.NOTHING);
                         }
                     });
                     timeline.getKeyFrames().add(keyFrame);
                     timeline.setCycleCount(secondsTotal);
                     timeline.play();
-                });
-            }
-            else {
-                timerPopup.hide();
-                inputTimerMinutes.clear();
-                timerButton.setText("Timer");
-            }
+                    timerPopup.setState(TimerState.COUNTING);
+                    break;
+                case COUNTING:
+                case NOTHING:
+                default:
+                    break;
+            };
+        });
+
+        //sets timer in minutes and timer label in mm:ss
+        timerButton.setOnAction(e -> {
+            switch(timerPopup.getState()) {
+                case NOTHING:
+                    timerPopup.show(stage);
+                    timerButton.setText("Set");
+                    snackButton.setVisible(false);
+                    timerPopup.setState(TimerState.CONFIGURING);
+                    break;
+                case CONFIGURING:
+                    break;
+                case COUNTING:
+                    timerButton.setText("Timer");
+                    timeline.stop();
+                    timeline.getKeyFrames().clear();
+                    timerLabel.setText("");
+                    studyMessage.setText("");
+
+                    timerPopup.setState(TimerState.NOTHING);
+                    break;
+                default:
+                    break;
+            };
         });
 
         //snack popup
